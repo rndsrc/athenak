@@ -77,13 +77,6 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
                 << "Shearing box source terms not enabled for mri2d problem" << std::endl;
       exit(EXIT_FAILURE);
     }
-    if (!pmbp->pmhd->shearing_box || pmbp->pmhd->psb->shearing_box_r_phi) {
-      std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__
-                << std::endl
-                << "hb3 problem generator only works in 2D (x-z) shearing box"
-                << std::endl;
-      exit(EXIT_FAILURE);
-    }
 
     // Initialize magnetic field first, so entire arrays are initialized before adding
     // magnetic energy to conserved variables in next loop.  For 2D shearing box
@@ -126,13 +119,7 @@ void ProblemGenerator::UserProblem(ParameterInput *pin, const bool restart) {
                 << "Shearing box source terms not enabled for mri2d problem" << std::endl;
       exit(EXIT_FAILURE);
     }
-    if (!pmbp->phydro->shearing_box || pmbp->phydro->psb->shearing_box_r_phi) {
-      std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__
-                << std::endl
-                << "hb3 problem generator only works in 2D (x-z) shearing box"
-                << std::endl;
-      exit(EXIT_FAILURE);
-    }
+
     EOS_Data &eos = pmbp->phydro->peos->eos_data;
     Real gm1 = eos.gamma - 1.0;
     auto u0 = pmbp->phydro->u0;
