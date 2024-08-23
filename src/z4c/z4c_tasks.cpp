@@ -18,9 +18,9 @@
 #include "tasklist/task_list.hpp"
 #include "mesh/mesh.hpp"
 #include "bvals/bvals.hpp"
+#include "z4c/compact_object_tracker.hpp"
 #include "z4c/z4c.hpp"
 #include "tasklist/numerical_relativity.hpp"
-#include "z4c/z4c_puncture_tracker.hpp"
 
 namespace z4c {
 //----------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ void Z4c::AssembleZ4cTasks(std::map<std::string, std::shared_ptr<TaskList>> tl) 
   id.irecvweyl = tl["before_stagen"]->AddTask(&Z4c::InitRecvWeyl, this, none);
 
   // "stagen" task list
-  // id.ptrack = tl["stagen"]->AddTask(&Z4c::PunctureTracker, this, none);
+  // id.ptrack = tl["stagen"]->AddTask(&Z4c::TrackCompactObjects, this, none);
   id.copyu = tl["stagen"]->AddTask(&Z4c::CopyU, this, none); // id.ptrack);
 
   switch (indcs.ng) {
@@ -60,7 +60,7 @@ void Z4c::AssembleZ4cTasks(std::map<std::string, std::shared_ptr<TaskList>> tl) 
   // "after_stagen" task list
   id.csend = tl["after_stagen"]->AddTask(&Z4c::ClearSend, this, none);
   id.crecv = tl["after_stagen"]->AddTask(&Z4c::ClearRecv, this, id.csend);
-  id.z4tad = tl["after_stagen"]->AddTask(&Z4c::Z4cToADM_, this, id.crecv);
+  id.z4tad = tl["after_stagen"]->AddTask(&Z4c::ConvertZ4cToADM, this, id.crecv);
   id.admc  = tl["after_stagen"]->AddTask(&Z4c::ADMConstraints_, this, id.z4tad);
   id.weyl_scalar  = tl["after_stagen"]->AddTask(&Z4c::CalcWeylScalar, this, id.z4tad);
   id.weyl_rest = tl["after_stagen"]->AddTask(&Z4c::RestrictWeyl, this, id.weyl_scalar);
@@ -70,7 +70,7 @@ void Z4c::AssembleZ4cTasks(std::map<std::string, std::shared_ptr<TaskList>> tl) 
   id.csendweyl = tl["after_stagen"]->AddTask(&Z4c::ClearSendWeyl, this, id.weyl_prol);
   id.crecvweyl = tl["after_stagen"]->AddTask(&Z4c::ClearRecvWeyl, this, id.csendweyl);
   id.wave_extr = tl["after_stagen"]->AddTask(&Z4c::CalcWaveForm, this, id.crecvweyl);
-  id.ptrck = tl["after_stagen"]->AddTask(&Z4c::PunctureTracker, this, id.z4tad);
+  id.ptrck = tl["after_stagen"]->AddTask(&Z4c::TrackCompactObjects, this, id.z4tad);
   return;
 }
 
@@ -114,7 +114,7 @@ void Z4c::QueueZ4cTasks() {
   pnr->QueueTask(&Z4c::Prolongate, this, Z4c_Prolong, "Z4c_Prolong", Task_Run, {Z4c_BCS});
   pnr->QueueTask(&Z4c::EnforceAlgConstr, this, Z4c_AlgC, "Z4c_AlgC", Task_Run,
                  {Z4c_Prolong});
-  pnr->QueueTask(&Z4c::Z4cToADM_, this, Z4c_Z4c2ADM, "Z4c_Z4c2ADM", Task_Run, {Z4c_AlgC});
+  pnr->QueueTask(&Z4c::ConvertZ4cToADM, this, Z4c_Z4c2ADM, "Z4c_Z4c2ADM", Task_Run, {Z4c_AlgC});
   if (pmy_pack->pdyngr != nullptr) {
     pnr->QueueTask(&Z4c::UpdateExcisionMasks, this, Z4c_Excise, "Z4c_Excise", Task_Run,
                    {Z4c_Z4c2ADM});
@@ -125,7 +125,7 @@ void Z4c::QueueZ4cTasks() {
   // End task list
   pnr->QueueTask(&Z4c::ClearSend, this, Z4c_ClearS, "Z4c_ClearS", Task_End);
   pnr->QueueTask(&Z4c::ClearRecv, this, Z4c_ClearR, "Z4c_ClearR", Task_End, {Z4c_ClearS});
-  /*pnr->QueueTask(&Z4c::Z4cToADM_, this, Z4c_Z4c2ADM, "Z4c_Z4c2ADM", Task_End,
+  /*pnr->QueueTask(&Z4c::Z4cToADM, this, Z4c_Z4c2ADM, "Z4c_Z4c2ADM", Task_End,
                  {Z4c_ClearR});*/
   pnr->QueueTask(&Z4c::ADMConstraints_, this, Z4c_ADMC, "Z4c_ADMC", Task_End,
   //               {Z4c_Z4c2ADM});
@@ -142,7 +142,7 @@ void Z4c::QueueZ4cTasks() {
                  {Z4c_ClearSW});
   pnr->QueueTask(&Z4c::CalcWaveForm, this, Z4c_Wave, "Z4c_Wave", Task_End,
                  {Z4c_ClearRW});
-  pnr->QueueTask(&Z4c::PunctureTracker, this, Z4c_PT, "Z4c_PT", Task_End, {Z4c_ADMC});
+  pnr->QueueTask(&Z4c::TrackCompactObjects, this, Z4c_PT, "Z4c_PT", Task_End, {Z4c_ADMC});
 }
 
 //----------------------------------------------------------------------------------------
@@ -246,7 +246,7 @@ TaskStatus Z4c::EnforceAlgConstr(Driver *pdrive, int stage) {
 //! \fn  void Z4c::ADMToZ4c_
 //! \brief
 
-TaskStatus Z4c::Z4cToADM_(Driver *pdrive, int stage) {
+TaskStatus Z4c::ConvertZ4cToADM(Driver *pdrive, int stage) {
   if (pmy_pack->pdyngr != nullptr || stage == pdrive->nexp_stages) {
     Z4cToADM(pmy_pack);
   }
@@ -326,12 +326,12 @@ TaskStatus Z4c::ApplyPhysicalBCs(Driver *pdrive, int stage) {
   return TaskStatus::complete;
 }
 
-TaskStatus Z4c::PunctureTracker(Driver *pdrive, int stage) {
+TaskStatus Z4c::TrackCompactObjects(Driver *pdrive, int stage) {
   if (stage == pdrive->nexp_stages) {
-    for (auto ptracker : pmy_pack->pz4c_ptracker) {
-      ptracker->InterpolateShift(pmy_pack);
-      ptracker->EvolveTracker();
-      ptracker->WriteTracker();
+    for (auto & pt : ptracker) {
+      pt.InterpolateVelocity(pmy_pack);
+      pt.EvolveTracker();
+      pt.WriteTracker();
     }
   }
   return TaskStatus::complete;
