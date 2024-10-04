@@ -24,6 +24,7 @@
 #include "z4c/z4c.hpp"
 #include "z4c/z4c_amr.hpp"
 #include "coordinates/adm.hpp"
+#include "utils/cart_grid.hpp"
 
 namespace z4c {
 
@@ -65,7 +66,6 @@ Z4c::Z4c(MeshBlockPack *ppack, ParameterInput *pin) :
   u_rhs("u_rhs z4c",1,1,1,1,1),
   u_weyl("u_weyl",1,1,1,1,1),
   coarse_u_weyl("coarse_u_weyl",1,1,1,1,1),
-  psi_out("psi_out",1,1,1),
   pamr(new Z4c_AMR(pin)) {
   // (1) read time-evolution option [already error checked in driver constructor]
   // Then initialize memory and algorithms for reconstruction and Riemann solvers
@@ -177,15 +177,38 @@ Z4c::Z4c(MeshBlockPack *ppack, ParameterInput *pin) :
     Real rad = pin->GetOrAddReal("z4c", "extraction_radius_"+std::to_string(i), 10);
     grids.push_back(std::make_unique<SphericalGrid>(ppack, nlev, rad));
   }
-  Kokkos::realloc(psi_out,nrad,77,2);
+  // TODO(@dur566): Why is the size of psi_out hardcoded?
+  psi_out = new Real[nrad*77*2];
   mkdir("waveforms",0775);
   waveform_dt = pin->GetOrAddReal("z4c", "waveform_dt", 1);
   last_output_time = 0;
 
   // Construct the compact object trackers
-  int nco = pin->GetOrAddInteger("z4c", "nco", 0);
-  for (int n = 0; n < nco; ++n) {
-    ptracker.emplace_back(pmy_pack->pmesh, pin, n);
+  int n = 0;
+  while (true) {
+    if (pin->DoesParameterExist("z4c", "co_" + std::to_string(n) + "_type")) {
+      ptracker.emplace_back(pmy_pack->pmesh, pin, n);
+      n++;
+    } else {
+      break;
+    }
+  }
+  // Construct the Cartesian data grid for dumping horizon data
+  mkdir("horizons",0775);
+  horizon_dt = pin->GetOrAddReal("z4c", "horizon_dt", 1);
+  horizon_last_output_time = 0;
+  n = 0;
+  for (auto & pt : ptracker) {
+    if (pin->GetOrAddBoolean("z4c", "dump_horizon_" + std::to_string(n),false)) {
+      horizon_extent.push_back(pin->GetOrAddReal("z4c", "horizon_"
+                              + std::to_string(n)+"_radius",3));
+      Real extend[3] = {horizon_extent[n],horizon_extent[n],horizon_extent[n]};
+      horizon_nx.push_back(pin->GetOrAddInteger("z4c", "horizon_"
+                              + std::to_string(n)+"_Nx",100));
+      int Nx[3] = {horizon_nx[n],horizon_nx[n],horizon_nx[n]};
+      horizon_dump.emplace_back(pmy_pack, pt.pos, extend, Nx);
+      n++;
+    }
   }
 }
 
@@ -243,6 +266,7 @@ void Z4c::AlgConstr(MeshBlockPack *pmbp) {
 //----------------------------------------------------------------------------------------
 // destructor
 Z4c::~Z4c() {
+  delete[] psi_out;
   delete pbval_u;
   delete pbval_weyl;
   delete pamr;

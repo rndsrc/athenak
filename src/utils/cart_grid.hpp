@@ -30,6 +30,7 @@ class CartesianGrid {
     Real max_x1, max_x2, max_x3;            // max value for xyz
     Real d_x1, d_x2, d_x3;                     // resolution
     int nx1, nx2, nx3;                      // number of points
+    Real extend_x1, extend_x2, extend_x3;
 
     // For simplicity, unravell all points into a 1d array
     DualArray4D<Real> interp_vals;   // container for data interpolated to sphere
@@ -39,7 +40,7 @@ class CartesianGrid {
     MeshBlockPack* pmy_pack;  // ptr to MeshBlockPack containing this Hydro
     DualArray4D<int> interp_indcs;   // indices of MeshBlock and zones therein for interp
     DualArray5D<Real> interp_wghts;  // weights for interpolation
-    void SetInterpolationCoordinates();  // set indexing for interpolation
+    void ResetCenter(Real center[3]);  // set indexing for interpolation
     void SetInterpolationIndices();      // set indexing for interpolation
     void SetInterpolationWeights();      // set weights for interpolation
 };

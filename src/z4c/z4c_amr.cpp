@@ -9,6 +9,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "z4c/z4c_amr.hpp"
 #include "athena.hpp"
@@ -74,6 +75,9 @@ void Z4c_AMR::RefineTracker(MeshBlockPack *pmbp) {
   int nmb           = pmbp->nmb_thispack;
   int mbs           = pmesh->gids_eachrank[global_variable::my_rank];
 
+  std::vector<int> flag;
+  flag.reserve(pmbp->pz4c->ptracker.size());
+
   for (int m = 0; m < nmb; ++m) {
     // current refinement level
     int level = pmesh->lloc_eachmb[m + mbs].level - pmesh->root_level;
@@ -86,6 +90,7 @@ void Z4c_AMR::RefineTracker(MeshBlockPack *pmbp) {
     Real &x3min = size.h_view(m).x3min;
     Real &x3max = size.h_view(m).x3max;
 
+    flag.clear();
     for (auto & pt : pmbp->pz4c->ptracker) {
       Real d2[8] = {
         SQ(x1min - pt.GetPos(0)) + SQ(x2min - pt.GetPos(1)) + SQ(x3min - pt.GetPos(2)),
@@ -98,19 +103,24 @@ void Z4c_AMR::RefineTracker(MeshBlockPack *pmbp) {
         SQ(x1max - pt.GetPos(0)) + SQ(x2max - pt.GetPos(1)) + SQ(x3max - pt.GetPos(2)),
       };
       Real dmin2 = *std::min_element(&d2[0], &d2[8]);
+      bool iscontained =
+        (pt.GetPos(0) >= x1min && pt.GetPos(0) <= x1max) &&
+        (pt.GetPos(1) >= x2min && pt.GetPos(1) <= x2max) &&
+        (pt.GetPos(2) >= x3min && pt.GetPos(2) <= x3max);
 
-      if (dmin2 < SQ(pt.GetRadius())) {
-        if (level < pt.GetReflevel()) {
-          refine_flag.h_view(m + mbs) = 1;
+      if (dmin2 < SQ(pt.GetRadius()) || iscontained) {
+        if (pt.GetReflevel() < 0 || level < pt.GetReflevel()) {
+          flag.push_back(1);
         } else if (level == pt.GetReflevel()) {
-          refine_flag.h_view(m + mbs) = 0;
+          flag.push_back(0);
         } else {
-          refine_flag.h_view(m + mbs) = -1;
+          flag.push_back(-1);
         }
       } else {
-        refine_flag.h_view(m + mbs) = -1;
+        flag.push_back(-1);
       }
     }
+    refine_flag.h_view(m + mbs) = *std::max_element(flag.begin(), flag.end());
   }
 
   // sync host and device

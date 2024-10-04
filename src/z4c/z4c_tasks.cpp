@@ -23,6 +23,7 @@
 #include "tasklist/numerical_relativity.hpp"
 
 namespace z4c {
+
 //----------------------------------------------------------------------------------------
 //! \fn  void Z4c::QueueZ4cTasks
 //! \brief queue Z4c tasks into NumericalRelativity
@@ -93,7 +94,9 @@ void Z4c::QueueZ4cTasks() {
                  {Z4c_ClearSW});
   pnr->QueueTask(&Z4c::CalcWaveForm, this, Z4c_Wave, "Z4c_Wave", Task_End,
                  {Z4c_ClearRW});
-  pnr->QueueTask(&Z4c::TrackCompactObjects, this, Z4c_PT, "Z4c_PT", Task_End, {Z4c_ADMC});
+  pnr->QueueTask(&Z4c::TrackCompactObjects, this, Z4c_PT, "Z4c_PT", Task_End, {Z4c_Wave});
+  pnr->QueueTask(&Z4c::DumpHorizons, this, Z4c_DumpHorizon, "Z4c_DumpHorizon",
+                Task_End, {Z4c_PT});
 }
 
 //----------------------------------------------------------------------------------------
@@ -452,6 +455,21 @@ TaskStatus Z4c::ClearSendWeyl(Driver *pdrive, int stage) {
     } else {
       return TaskStatus::complete;
     }
+  }
+}
+
+TaskStatus Z4c::DumpHorizons(Driver *pdrive, int stage) {
+  if (pmy_pack->pz4c->horizon_dump.size() == 0) {
+    return TaskStatus::complete;
+  } else {
+    float time_32 = static_cast<float>(pmy_pack->pmesh->time);
+    float next_32 = static_cast<float>(horizon_last_output_time+horizon_dt);
+    if (((time_32 >= next_32) || (time_32 == 0)) && stage == pdrive->nexp_stages) {
+      horizon_last_output_time = time_32;
+      // Interpolate field to cart_grid
+      // 
+    }
+    return TaskStatus::complete;
   }
 }
 

@@ -35,15 +35,20 @@ CartesianGrid::CartesianGrid(MeshBlockPack *pmy_pack, Real center[3],
   center_x2 = center[1];
   center_x3 = center[2];
 
+  // grid center
+  extend_x1 = extend[0];
+  extend_x2 = extend[1];
+  extend_x3 = extend[2];
+
   // lower bound
-  min_x1 = center_x1 - extend[0];
-  min_x2 = center_x2 - extend[1];
-  min_x3 = center_x3 - extend[2];
+  min_x1 = center_x1 - extend_x1;
+  min_x2 = center_x2 - extend_x2;
+  min_x3 = center_x3 - extend_x3;
 
   // upper bound
-  max_x1 = center_x1 + extend[0];
-  max_x2 = center_x2 + extend[1];
-  max_x3 = center_x3 + extend[2];
+  max_x1 = center_x1 + extend_x1;
+  max_x2 = center_x2 + extend_x2;
+  max_x3 = center_x3 + extend_x3;
 
   // number of points
   nx1 = numpoints[0];
@@ -68,6 +73,25 @@ CartesianGrid::CartesianGrid(MeshBlockPack *pmy_pack, Real center[3],
   return;
 }
 
+CartesianGrid::~CartesianGrid() {}
+
+void CartesianGrid::ResetCenter(Real center[3]) {
+  // grid center
+  center_x1 = center[0];
+  center_x2 = center[1];
+  center_x3 = center[2];
+
+  // lower bound
+  min_x1 = center_x1 - extend_x1;
+  min_x2 = center_x2 - extend_x2;
+  min_x3 = center_x3 - extend_x3;
+
+  // upper bound
+  max_x1 = center_x1 + extend_x1;
+  max_x2 = center_x2 + extend_x2;
+  max_x3 = center_x3 + extend_x3;
+}
+
 void CartesianGrid::SetInterpolationIndices() {
   auto &size = pmy_pack->pmb->mb_size;
   int nmb1 = pmy_pack->nmb_thispack - 1;
@@ -80,8 +104,6 @@ void CartesianGrid::SetInterpolationIndices() {
         Real x1 = min_x1 + nx * d_x1;
         Real x2 = min_x2 + ny * d_x2;
         Real x3 = min_x3 + nz * d_x3;
-
-        std::cout << x1 << "\t" << x2 << "\t" << x3 << std::endl;
 
         // indices default to -1 if point does not reside in this MeshBlockPack
         iindcs.h_view(nx,ny,nz,0) = -1;

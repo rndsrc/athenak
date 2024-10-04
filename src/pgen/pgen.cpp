@@ -200,9 +200,9 @@ ProblemGenerator::ProblemGenerator(ParameterInput *pin, Mesh *pm, IOWrapper resf
         }
       }
 #if MPI_PARALLEL_ENABLED
-      MPI_Bcast(&pos, sizeof(Real), MPI_CHAR, 3, MPI_COMM_WORLD);
+      MPI_Bcast(&pos[0], 3*sizeof(Real), MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
-      pt.SetPos(pos);
+      pt.SetPos(&pos[0]);
     }
   }
 

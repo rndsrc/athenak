@@ -88,30 +88,30 @@ void CompactObjectTracker::InterpolateVelocity(MeshBlockPack *pmbp) {
   if (S->point_exist) {
     owns_compact_object = true;
 
-    double betax = S->Interpolate(pz4c->u0, pz4c->I_Z4C_BETAX);
-    double betay = S->Interpolate(pz4c->u0, pz4c->I_Z4C_BETAY);
-    double betaz = S->Interpolate(pz4c->u0, pz4c->I_Z4C_BETAZ);
+    Real betax = S->Interpolate(pz4c->u0, pz4c->I_Z4C_BETAX);
+    Real betay = S->Interpolate(pz4c->u0, pz4c->I_Z4C_BETAY);
+    Real betaz = S->Interpolate(pz4c->u0, pz4c->I_Z4C_BETAZ);
     vel[0] = - betax;
     vel[1] = - betay;
     vel[2] = - betaz;
     if (type == NeutronStar) {
-      double alp = S->Interpolate(pz4c->u0, pz4c->I_Z4C_ALPHA);
+      Real alp = S->Interpolate(pz4c->u0, pz4c->I_Z4C_ALPHA);
 
-      double zx = S->Interpolate(pmhd->w0, IVX);
-      double zy = S->Interpolate(pmhd->w0, IVY);
-      double zz = S->Interpolate(pmhd->w0, IVZ);
+      Real zx = S->Interpolate(pmhd->w0, IVX);
+      Real zy = S->Interpolate(pmhd->w0, IVY);
+      Real zz = S->Interpolate(pmhd->w0, IVZ);
 
-      double gxx = S->Interpolate(padm->u_adm, padm->I_ADM_GXX);
-      double gxy = S->Interpolate(padm->u_adm, padm->I_ADM_GXY);
-      double gxz = S->Interpolate(padm->u_adm, padm->I_ADM_GXZ);
-      double gyy = S->Interpolate(padm->u_adm, padm->I_ADM_GYY);
-      double gyz = S->Interpolate(padm->u_adm, padm->I_ADM_GYZ);
-      double gzz = S->Interpolate(padm->u_adm, padm->I_ADM_GZZ);
+      Real gxx = S->Interpolate(padm->u_adm, padm->I_ADM_GXX);
+      Real gxy = S->Interpolate(padm->u_adm, padm->I_ADM_GXY);
+      Real gxz = S->Interpolate(padm->u_adm, padm->I_ADM_GXZ);
+      Real gyy = S->Interpolate(padm->u_adm, padm->I_ADM_GYY);
+      Real gyz = S->Interpolate(padm->u_adm, padm->I_ADM_GYZ);
+      Real gzz = S->Interpolate(padm->u_adm, padm->I_ADM_GZZ);
 
-      double z_x = gxx*zx + gxy*zy + gxz*zz;
-      double z_y = gxy*zx + gyy*zy + gyz*zz;
-      double z_z = gxz*zx + gyz*zy + gzz*zz;
-      double W = std::sqrt(z_x*zx + z_y*zy + z_z*zz + 1);
+      Real z_x = gxx*zx + gxy*zy + gxz*zz;
+      Real z_y = gxy*zx + gyy*zy + gyz*zz;
+      Real z_z = gxz*zx + gyz*zy + gzz*zz;
+      Real W = std::sqrt(z_x*zx + z_y*zy + z_z*zz + 1);
 
       vel[0] += alp*zx/W;
       vel[1] += alp*zy/W;
@@ -134,7 +134,7 @@ void CompactObjectTracker::EvolveTracker() {
   } else {
     std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__
               << std::endl;
-    std::cout << "couldn't find the puncture!" << std::endl;
+    std::cout << "couldn't find the compact object!" << std::endl;
     std::exit(EXIT_FAILURE);
   }
 #else
@@ -154,7 +154,7 @@ void CompactObjectTracker::EvolveTracker() {
   if (buf[6] < 0.5) {
     std::cout << "### FATAL ERROR in " << __FILE__ << " at line " << __LINE__
               << std::endl;
-    std::cout << "The puncture has left the grid" << std::endl;
+    std::cout << "The compact object has left the grid" << std::endl;
     std::exit(EXIT_FAILURE);
   }
   pos[0] = buf[0] / buf[6];
@@ -165,7 +165,7 @@ void CompactObjectTracker::EvolveTracker() {
   vel[2] = buf[5] / buf[6];
 #endif // MPI_PARALLEL_ENABLED
 
-  // After the puncture has moved it might have changed ownership
+  // After the compact object has moved it might have changed ownership
   owns_compact_object = false;
 }
 
@@ -179,6 +179,6 @@ void CompactObjectTracker::WriteTracker() {
           << pos[2] << " "
           << vel[0] << " "
           << vel[1] << " "
-          << vel[2] << std::flush << std::endl;
+          << vel[2] << std::endl << std::flush;
   }
 }
