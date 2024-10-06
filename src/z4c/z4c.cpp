@@ -21,6 +21,7 @@
 #include "mesh/mesh.hpp"
 #include "bvals/bvals.hpp"
 #include "z4c/compact_object_tracker.hpp"
+#include "z4c/horizon_dump.hpp"
 #include "z4c/z4c.hpp"
 #include "z4c/z4c_amr.hpp"
 #include "coordinates/adm.hpp"
@@ -195,6 +196,16 @@ Z4c::Z4c(MeshBlockPack *ppack, ParameterInput *pin) :
   }
   // Construct the Cartesian data grid for dumping horizon data
   mkdir("horizons",0775);
+  n = 0;
+  while (true) {
+    if (pin->GetOrAddBoolean("z4c", "dump_horizon_" + std::to_string(n),false)) {
+      phorizon_dump.emplace_back(pmy_pack, pin, n,false);
+      n++;
+    } else {
+      break;
+    }
+  }
+  /*
   horizon_dt = pin->GetOrAddReal("z4c", "horizon_dt", 1);
   horizon_last_output_time = 0;
   n = 0;
@@ -210,6 +221,7 @@ Z4c::Z4c(MeshBlockPack *ppack, ParameterInput *pin) :
       n++;
     }
   }
+  */
 }
 
 //----------------------------------------------------------------------------------------

@@ -26,7 +26,7 @@ class CartesianGrid;
 class HorizonDump {
  public:
   //! Initialize a tracker
-  HorizonDump(MeshBlockPack *pmbp, ParameterInput *pin, int n, bool common_horizon);
+  HorizonDump(MeshBlockPack *pmbp, ParameterInput *pin, int n, int common_horizon);
   //! Destructor (will close output file)
   ~HorizonDump();
 
@@ -36,7 +36,7 @@ class HorizonDump {
   void WriteFile();
 
   int horizon_nx;  // number of points in each direction
-  bool common_horizon; // common horizon or not, triggering when to start dumping data
+  int common_horizon; // common horizon or not, triggering when to start dumping data
 
   Real horizon_dt;
   Real horizon_last_output_time;
@@ -48,7 +48,8 @@ class HorizonDump {
   private:
   MeshBlockPack const *pmbp;
   Real radius;          // nominal radius of the object (for the AMR driver)
-
+  // first element store variable index second store whether from z4c (true) or adm (false) array
+  std::vector<std::pair<int, bool>> variable_to_dump;
 };
 
 #endif // Z4C_HORIZON_DUMP_HPP_

@@ -33,7 +33,7 @@ class CartesianGrid {
     Real extend_x1, extend_x2, extend_x3;
 
     // For simplicity, unravell all points into a 1d array
-    DualArray4D<Real> interp_vals;   // container for data interpolated to sphere
+    DualArray3D<Real> interp_vals;   // container for data interpolated to sphere
     void InterpolateToGrid(int nvars, DvceArray5D<Real> &val);  // interpolate to sphere
 
  // private:

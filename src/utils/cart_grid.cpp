@@ -26,7 +26,7 @@ CartesianGrid::CartesianGrid(MeshBlockPack *pmy_pack, Real center[3],
     pmy_pack(pmy_pack),
     interp_indcs("interp_indcs",1,1,1,1),
     interp_wghts("interp_wghts",1,1,1,1,1),
-    interp_vals("interp_vals",1,1,1,1) {
+    interp_vals("interp_vals",1,1,1) {
 
   // initialize parameters for the grid
 
@@ -39,6 +39,9 @@ CartesianGrid::CartesianGrid(MeshBlockPack *pmy_pack, Real center[3],
   extend_x1 = extend[0];
   extend_x2 = extend[1];
   extend_x3 = extend[2];
+
+
+  std::cout << extend_x1 << "\t" << extend_x2 << "\t" << extend_x3 << std::endl;
 
   // lower bound
   min_x1 = center_x1 - extend_x1;
@@ -90,6 +93,8 @@ void CartesianGrid::ResetCenter(Real center[3]) {
   max_x1 = center_x1 + extend_x1;
   max_x2 = center_x2 + extend_x2;
   max_x3 = center_x3 + extend_x3;
+  SetInterpolationIndices();
+  SetInterpolationWeights();
 }
 
 void CartesianGrid::SetInterpolationIndices() {
@@ -104,7 +109,6 @@ void CartesianGrid::SetInterpolationIndices() {
         Real x1 = min_x1 + nx * d_x1;
         Real x2 = min_x2 + ny * d_x2;
         Real x3 = min_x3 + nz * d_x3;
-
         // indices default to -1 if point does not reside in this MeshBlockPack
         iindcs.h_view(nx,ny,nz,0) = -1;
         iindcs.h_view(nx,ny,nz,1) = -1;
@@ -216,12 +220,12 @@ void CartesianGrid::SetInterpolationWeights() {
 //! \fn void CartesianGrid::InterpolateToGrid
 //! \brief interpolate Cartesian data to cart_grid for output
 
-void CartesianGrid::InterpolateToGrid(int nvars, DvceArray5D<Real> &val) {
+void CartesianGrid::InterpolateToGrid(int ind, DvceArray5D<Real> &val) {
   // reinitialize interpolation indices and weights if AMR
-  if (pmy_pack->pmesh->adaptive) {
-    SetInterpolationIndices();
-    SetInterpolationWeights();
-  }
+  //if (pmy_pack->pmesh->adaptive) {
+  //  SetInterpolationIndices();
+  //  SetInterpolationWeights();
+  //}
 
   // capturing variables for kernel
   auto &indcs = pmy_pack->pmesh->mb_indcs;
@@ -230,35 +234,33 @@ void CartesianGrid::InterpolateToGrid(int nvars, DvceArray5D<Real> &val) {
   int n_x1 = nx1 - 1;
   int n_x2 = nx2 - 1;
   int n_x3 = nx3 - 1;
-
-  int nvar1 = nvars - 1;
+  int index = ind;
 
   // reallocate container
-  Kokkos::realloc(interp_vals,n_x1,n_x2,n_x3,nvars);
+  Kokkos::realloc(interp_vals,n_x1,n_x2,n_x3);
 
   auto &iindcs = interp_indcs;
   auto &iwghts = interp_wghts;
   auto &ivals = interp_vals;
-  par_for("int2cart",DevExeSpace(),0,n_x1,0,n_x2,0,n_x3,0,nvar1,
-  KOKKOS_LAMBDA(int nx, int ny, int nz, int v) {
+  par_for("int2cart",DevExeSpace(),0,n_x1,0,n_x2,0,n_x3,
+  KOKKOS_LAMBDA(int nx, int ny, int nz) {
     int ii0 = iindcs.d_view(nx,ny,nz,0);
     int ii1 = iindcs.d_view(nx,ny,nz,1);
     int ii2 = iindcs.d_view(nx,ny,nz,2);
     int ii3 = iindcs.d_view(nx,ny,nz,3);
-
-    if (ii0==-1) {  // angle not on this rank
-      ivals.d_view(nx,ny,nz,v) = 0.0;
+    if (ii0==-1) {  // point not on this rank
+      ivals.d_view(nx,ny,nz) = 0.0;
     } else {
       Real int_value = 0.0;
       for (int i=0; i<2*ng; i++) {
         for (int j=0; j<2*ng; j++) {
           for (int k=0; k<2*ng; k++) {
             Real iwght = iwghts.d_view(nx,ny,nz,i,0)*iwghts.d_view(nx,ny,nz,j,1)*iwghts.d_view(nx,ny,nz,k,2);
-            int_value += iwght*val(ii0,v,ii3-(ng-k-ks)+1,ii2-(ng-j-js)+1,ii1-(ng-i-is)+1);
+            int_value += iwght*val(ii0,index,ii3-(ng-k-ks)+1,ii2-(ng-j-js)+1,ii1-(ng-i-is)+1);
           }
         }
       }
-      ivals.d_view(nx,ny,nz,v) = int_value;
+      ivals.d_view(nx,ny,nz) = int_value;
     }
   });
 
