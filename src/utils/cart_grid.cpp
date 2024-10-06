@@ -237,7 +237,7 @@ void CartesianGrid::InterpolateToGrid(int ind, DvceArray5D<Real> &val) {
   int index = ind;
 
   // reallocate container
-  Kokkos::realloc(interp_vals,n_x1,n_x2,n_x3);
+  Kokkos::realloc(interp_vals,nx1,nx2,nx3);
 
   auto &iindcs = interp_indcs;
   auto &iwghts = interp_wghts;

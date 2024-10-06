@@ -69,7 +69,9 @@ HorizonDump::HorizonDump(MeshBlockPack *pmbp, ParameterInput *pin, int n, int is
 }
 
 //----------------------------------------------------------------------------------------
-HorizonDump::~HorizonDump() {}
+HorizonDump::~HorizonDump() {
+  delete pcat_grid;
+}
 
 void HorizonDump::SetGridAndInterpolate(Real center[NDIM]) {
   // update center location
@@ -95,6 +97,7 @@ void HorizonDump::SetGridAndInterpolate(Real center[NDIM]) {
       data_out[nx][ny][nz][nvar] = pcat_grid->interp_vals.h_view(nx,ny,nz);
     }
   }
+  std::cout << "here" << std::endl;
 
   // MPI reduce here
   // Reduction to the master rank for data_out
