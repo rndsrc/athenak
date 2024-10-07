@@ -40,9 +40,6 @@ CartesianGrid::CartesianGrid(MeshBlockPack *pmy_pack, Real center[3],
   extend_x2 = extend[1];
   extend_x3 = extend[2];
 
-
-  std::cout << extend_x1 << "\t" << extend_x2 << "\t" << extend_x3 << std::endl;
-
   // lower bound
   min_x1 = center_x1 - extend_x1;
   min_x2 = center_x2 - extend_x2;

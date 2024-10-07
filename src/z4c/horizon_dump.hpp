@@ -32,11 +32,13 @@ class HorizonDump {
 
   // Interpolate field to Cartesian Grid centered at the puncture locations
   void SetGridAndInterpolate(Real center[NDIM]);
-  //! Write data to file
-  void WriteFile();
+
+  //! Write parameter file for Einstein Toolkit
+  void ETK_setup_parfile(const Real BH_radius_guess, char parfilename[100]);
 
   int horizon_nx;  // number of points in each direction
   int common_horizon; // common horizon or not, triggering when to start dumping data
+  int horizon_ind; // indices for horizon
 
   Real horizon_dt;
   Real horizon_last_output_time;
