@@ -100,9 +100,11 @@ void HorizonDump::SetGridAndInterpolate(Real center[NDIM]) {
     for (int nx = 0; nx < horizon_nx; nx ++)
     for (int ny = 0; ny < horizon_nx; ny ++)
     for (int nz = 0; nz < horizon_nx; nz ++) {
-      // fill data_out here
-      data_out[nx * horizon_nx * horizon_nx * 16 + ny * horizon_nx * 16 + nz * 16 + nvar]
-                = pcat_grid->interp_vals.h_view(nx,ny,nz);
+      data_out[nvar * horizon_nx * horizon_nx * horizon_nx +  // Section for nvar
+        nx * horizon_nx * horizon_nx +                 // Slice for nx
+        ny * horizon_nx +                              // Row for ny
+        nz]                                            // Column for nz
+        = pcat_grid->interp_vals.h_view(nx, ny, nz);        // Value being assigned
     }
   }
 
