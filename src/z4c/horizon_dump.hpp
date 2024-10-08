@@ -10,6 +10,8 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <vector>
+#include <utility>
 
 #include "athena.hpp"
 #include "mesh/mesh.hpp"
