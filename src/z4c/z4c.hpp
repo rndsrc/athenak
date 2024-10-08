@@ -232,8 +232,8 @@ class Z4c {
   void AlgConstr(MeshBlockPack *pmbp);
 
   Z4c_AMR *pamr;
-  std::list<CompactObjectTracker> ptracker;
-  std::list<HorizonDump> phorizon_dump;
+  std::vector<std::unique_ptr<CompactObjectTracker>> ptracker;
+  std::vector<std::unique_ptr<HorizonDump>> phorizon_dump;
 
   /*
   std::list<CartesianGrid> horizon_dump;

@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <unistd.h>
+#include <sys/stat.h>  // mkdir
 
 #include <cmath>
 #include <fstream>
@@ -42,6 +43,9 @@ HorizonDump::HorizonDump(MeshBlockPack *pmbp, ParameterInput *pin, int n, int is
   horizon_extent = pin->GetOrAddReal("z4c", "co_" + nstr + "_dump_radius", 2.0);
   horizon_nx = pin->GetOrAddInteger("z4c", "horizon_"
                               + std::to_string(n)+"_Nx",10);
+  horizon_dt = pin->GetOrAddReal("z4c", "horizon_dt", 1.0);
+  output_count = 0;
+
   Real extend[3] = {horizon_extent,horizon_extent,horizon_extent};
   int Nx[3] = {horizon_nx,horizon_nx,horizon_nx};
   pcat_grid = new CartesianGrid(pmbp, pos, extend, Nx);
@@ -119,8 +123,12 @@ void HorizonDump::SetGridAndInterpolate(Real center[NDIM]) {
   #endif
   // Then write output file
   // Open the file in binary write mode
+  std::string foldername = "horizon_"+std::to_string(horizon_ind)+"/output_"+std::to_string(output_count);
+  mkdir(foldername.c_str(),0775);
+
   if (0 == global_variable::my_rank) {
-    FILE* etk_output_file = fopen("horizons/etk_output_file.dat", "wb");
+    std::string fname = foldername + "/etk_output_file.dat";
+    FILE* etk_output_file = fopen(fname.c_str(), "wb");
     if (etk_output_file == nullptr) {
       perror("Error opening file");
       return;
@@ -135,19 +143,24 @@ void HorizonDump::SetGridAndInterpolate(Real center[NDIM]) {
     // Close the file
     fclose(etk_output_file);
 
-    std::cout << "here" << std::endl;
     char parfilename[100];
     ETK_setup_parfile(0.5, parfilename);
-    std::cout << "parfile written" << std::endl;
-
+    output_count++;
     // delete dataout
     delete[] data_out;
   }
 }
 
 void HorizonDump::ETK_setup_parfile(const Real BH_radius_guess, char parfilename[100]) {
-  if(horizon_ind==0) sprintf(parfilename, "horizons/ET_analyze_BHaH_data_horizon_0.par");
-  if(horizon_ind==1) sprintf(parfilename, "horizons/ET_analyze_BHaH_data_horizon_1.par");
+  std::string foldername;
+  if (common_horizon == 0) {
+    foldername = "horizon_"+std::to_string(horizon_ind)+"/output_"+std::to_string(output_count);
+  } else {
+    foldername = "horizon_common/output_"+std::to_string(output_count);
+  }
+  std::string fname = foldername + "/ET_analyze_BHaH_data_horizon.par";
+
+  sprintf(parfilename, "%s", fname.c_str());
   // if(BH==BH_POSTMERGER)            sprintf(parfilename, "et_minimal_2021_11/exe/ET_analyze_BHaH_data_horizon_postmerger.par");
 
   FILE *etk_parfile = fopen(parfilename, "w");

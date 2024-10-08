@@ -39,6 +39,8 @@ class HorizonDump {
   int horizon_nx;  // number of points in each direction
   int common_horizon; // common horizon or not, triggering when to start dumping data
   int horizon_ind; // indices for horizon
+  // TODO (@HZ) : check if this works with rst
+  int output_count; // counting the output number (for naming subfolders)
 
   Real horizon_dt;
   Real horizon_last_output_time;

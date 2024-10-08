@@ -188,18 +188,20 @@ Z4c::Z4c(MeshBlockPack *ppack, ParameterInput *pin) :
   int n = 0;
   while (true) {
     if (pin->DoesParameterExist("z4c", "co_" + std::to_string(n) + "_type")) {
-      ptracker.emplace_back(pmy_pack->pmesh, pin, n);
+      ptracker.push_back(std::make_unique<CompactObjectTracker>(pmy_pack->pmesh, pin, n));
       n++;
     } else {
       break;
     }
   }
   // Construct the Cartesian data grid for dumping horizon data
-  mkdir("horizons",0775);
   n = 0;
   while (true) {
     if (pin->GetOrAddBoolean("z4c", "dump_horizon_" + std::to_string(n),false)) {
-      phorizon_dump.emplace_back(pmy_pack, pin, n,false);
+      // phorizon_dump.emplace_back(pmy_pack, pin, n,false);
+      phorizon_dump.push_back(std::make_unique<HorizonDump>(pmy_pack, pin, n, 0));
+      std::string foldername = "horizon_"+std::to_string(n);
+      mkdir(foldername.c_str(),0775);
       n++;
     } else {
       break;
