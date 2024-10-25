@@ -48,11 +48,11 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
   // set team_size
   int team_size = 128;
   // scratch size
-  size_t scr_size = ScrArray1D<Real>::shmem_size(team_size)*15 // 0 tensors
-                + ScrArray2D<Real>::shmem_size(3,team_size)*10 // vectors
-                + ScrArray2D<Real>::shmem_size(6,team_size)*11 // rank 2 tensor with symm
-                + ScrArray2D<Real>::shmem_size(9,team_size)*2  // rank 2 tensor with no symm
-                + ScrArray2D<Real>::shmem_size(18,team_size)*4 // rank 3 tensor with symm
+  size_t scr_size = ScrArray1D<Real>::shmem_size(team_size)*0 // 0 tensors
+                + ScrArray2D<Real>::shmem_size(3,team_size)*0 // vectors
+                + ScrArray2D<Real>::shmem_size(6,team_size)*0 // rank 2 tensor with symm
+                + ScrArray2D<Real>::shmem_size(9,team_size)*0  // rank 2 tensor with no symm
+                + ScrArray2D<Real>::shmem_size(18,team_size)*0 // rank 3 tensor with symm
                 + ScrArray2D<Real>::shmem_size(36,team_size);  // rank 4 tensor with symm
   // play with this later
   int scr_level = 1;
@@ -70,6 +70,10 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
 
   par_for_outer("z4c rhs loop",DevExeSpace(), scr_size, scr_level, 0, nteam - 1,
   KOKKOS_LAMBDA(TeamMember_t member, const int team) {
+    // metric 2nd drvts
+    AthenaScratchTensor<Real, TensorSymm::SYM22, 3, 4> ddg_dddd;
+    ddg_dddd.NewAthenaScratchTensor(member, scr_level, team_size);
+
     par_for_inner(member, 0, team_size - 1, [&](const int t) {
       int index = team_size * team + t;
       int m = (index)/nkji;
@@ -100,10 +104,8 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
       }
       // Lie derivative of conf. 3-metric
       AthenaPointTensor<Real, TensorSymm::SYM2, 3, 2> Lg_dd;
-      for (int a = 0; a < 3; ++a)
-      for (int b = a; b < 3; ++b) {
-        Lg_dd(a,b) = 0.0;
-      }
+      Lg_dd.ZeroClear();
+
       for(int a = 0; a < 3; ++a)
       for(int b = a; b < 3; ++b)
       for(int c = 0; c < 3; ++c) {
@@ -164,9 +166,8 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
 
       // Lie derivative of the shift
       AthenaPointTensor<Real, TensorSymm::NONE, 3, 1> Lbeta_u;
-      for (int a = 0; a < 3; ++a) {
-        Lbeta_u(a) = 0.0;
-      }
+      Lbeta_u.ZeroClear();
+
       for(int a = 0; a < 3; ++a)
       for(int b = 0; b < 3; ++b) {
         Lbeta_u(b) += Lx<NGHOST>(a, idx, z4c.beta_u, z4c.beta_u, m,a,b,k,j,i);
@@ -297,25 +298,15 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
 
       //
       // Vectors
-      for (int a = 0; a < 3; ++a) {
-        LGam_u(a) = 0.0;
-        Gamma_u(a) = 0.0;
-        DA_u(a) = 0.0;
-        ddbeta_d(a) = 0.0;
-      }
-
-      //
-      // Symmetric tensors
-      for (int a = 0; a < 3; ++a)
-      for (int b = a; b < 3; ++b) {
-        LA_dd(a,b) = 0.0;
-        AA_dd(a,b) = 0.0;
-        R_dd(a,b) = 0.0;
-        A_uu(a,b) = 0.0;
-        for (int c = 0; c < 3; ++c) {
-            Gamma_udd(c,a,b) = 0.0;
-        }
-      }
+      LGam_u.ZeroClear();
+      Gamma_u.ZeroClear();
+      DA_u.ZeroClear();
+      ddbeta_d.ZeroClear();
+      LA_dd.ZeroClear();
+      AA_dd.ZeroClear();
+      R_dd.ZeroClear();
+      A_uu.ZeroClear();
+      Gamma_udd.ZeroClear();
 
       // -----------------------------------------------------------------------------------
       // 1st derivatives
@@ -410,14 +401,14 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
       }
 
       // metric second derivative
-      AthenaPointTensor<Real, TensorSymm::SYM22, 3, 4> ddg_dddd;
+      // AthenaPointTensor<Real, TensorSymm::SYM22, 3, 4> ddg_dddd;
 
       for(int c = 0; c < 3; ++c)
       for(int d = c; d < 3; ++d)
       for(int a = 0; a < 3; ++a) {
-        ddg_dddd(a,a,c,d) = Dxx<NGHOST>(a, idx, z4c.g_dd, m,c,d,k,j,i);
+        ddg_dddd(a,a,c,d,t) = Dxx<NGHOST>(a, idx, z4c.g_dd, m,c,d,k,j,i);
         for(int b = a + 1; b < 3; ++b) {
-          ddg_dddd(a,b,c,d) = Dxy<NGHOST>(a, b, idx, z4c.g_dd, m,c,d,k,j,i);
+          ddg_dddd(a,b,c,d,t) = Dxy<NGHOST>(a, b, idx, z4c.g_dd, m,c,d,k,j,i);
         }
       }
 
@@ -433,7 +424,7 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
         }
         for(int c = 0; c < 3; ++c)
         for(int d = 0; d < 3; ++d) {
-          R_dd(a,b) -= 0.5*g_uu(c,d)*ddg_dddd(c,d,a,b);
+          R_dd(a,b) -= 0.5*g_uu(c,d)*ddg_dddd(c,d,a,b,t);
         }
         for(int c = 0; c < 3; ++c)
         for(int d = 0; d < 3; ++d)
