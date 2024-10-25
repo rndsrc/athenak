@@ -284,7 +284,8 @@ inline void par_for(const std::string &name, DevExeSpace exec_space,
   const int nnkji = nn * nk * nj * ni;
   const int nkji  = nk * nj * ni;
   const int nji   = nj * ni;
-  Kokkos::parallel_for(name, Kokkos::RangePolicy<>(exec_space, 0, nnkji),
+  Kokkos::parallel_for(name, Kokkos::RangePolicy<Kokkos::LaunchBounds<128,2>>
+                                                        (exec_space, 0, nnkji),
   KOKKOS_LAMBDA(const int &idx) {
     // compute n,k,j,i indices of thread and call function
     int n = (idx)/nkji;
