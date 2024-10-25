@@ -339,7 +339,7 @@ inline void par_for_outer(const std::string &name, DevExeSpace exec_space,
                           size_t scr_size, const int scr_level,
                           const int kl, const int ku, const Function &function) {
   const int nk = ku - kl + 1;
-  Kokkos::TeamPolicy<> policy(exec_space, nk, Kokkos::AUTO);
+  Kokkos::TeamPolicy<Kokkos::LaunchBounds<128,4>> policy(exec_space, nk, Kokkos::AUTO);
   Kokkos::parallel_for(name, policy.set_scratch_size(scr_level,Kokkos::PerTeam(scr_size)),
   KOKKOS_LAMBDA(TeamMember_t tmember) {
     const int k = tmember.league_rank() + kl;
