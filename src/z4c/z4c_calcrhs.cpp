@@ -46,7 +46,7 @@ TaskStatus Z4c::CalcRHS(Driver *pdriver, int stage) {
   // Main RHS calculation
   //
   // set team_size
-  int team_size = 128;
+  int team_size = 256;
   // scratch size
   size_t scr_size = ScrArray1D<Real>::shmem_size(team_size)*0 // 0 tensors
                 + ScrArray2D<Real>::shmem_size(3,team_size)*0 // vectors
