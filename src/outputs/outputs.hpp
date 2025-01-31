@@ -97,6 +97,10 @@ static const char *var_choice[NOUTPUT_CHOICES] = {
 
   // Particles (150-151)
   "prtcl_all", "prtcl_d"
+
+  // Dyn GR diagnostics (152-156)
+  "dyngr_diag_mx", "dyngr_diag_my", "dyngr_diag_mz", "dyngr_diag_jz",
+  "dyngr_diag"
 };
 
 

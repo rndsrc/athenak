@@ -18,6 +18,7 @@
 
 #include "athena.hpp"
 #include "parameter_input.hpp"
+#include "coordinates/adm.hpp"
 #include "coordinates/cartesian_ks.hpp"
 #include "coordinates/cell_locations.hpp"
 #include "geodesic-grid/geodesic_grid.hpp"
@@ -30,6 +31,8 @@
 #include "particles/particles.hpp"
 #include "outputs.hpp"
 #include "utils/current.hpp"
+#include "z4c/z4c.hpp"
+#include "z4c/tmunu.hpp"
 
 //----------------------------------------------------------------------------------------
 // BaseTypeOutput::ComputeDerivedVariable()
@@ -52,6 +55,19 @@ void BaseTypeOutput::ComputeDerivedVariable(std::string name, Mesh *pm) {
   // derived variable index
   int &i_dv = out_params.i_derived;
   int &n_dv = out_params.n_derived;
+
+  // dyngr_diag_mx = pressure / density
+  if (name.compare("dyngr_diag_mx") == 0) {
+    if (derived_var.extent(4) <= 1)
+      Kokkos::realloc(derived_var, nmb, n_dv, n3, n2, n1);
+    auto dv = derived_var;
+    auto 
+    par_for("dyngr_diag_mx", DevExeSpace(), 0, (nmb-1), ks, ke, js, je, is, ie,
+    KOKKOS_LAMBDA(int m, int k, int j, int i) {
+      dv(m,i_dv,k,j,i) = (w0_(m,IEN,k,j,i+1) / w0_(m,IDN,k,j,i-1));
+    });
+    i_dv += 1; // increment derived variable index
+  }
 
   // temperature = pressure / density
   if (name.compare("temperature") == 0) {

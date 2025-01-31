@@ -679,6 +679,38 @@ BaseTypeOutput::BaseTypeOutput(ParameterInput *pin, Mesh *pm, OutputParameters o
     outvars.emplace_back("pdens",0,&(derived_var));
   }
 
+  // x momentum density for mhd on dyngr background
+  if (variable.compare("dyngr_diag_mx") == 0) {
+    out_params.contains_derived = true;
+    out_params.n_derived += 1;
+    int i_derived = out_params.n_derived - 1;
+    outvars.emplace_back("dyngr_diag_mx",i_derived,&(derived_var));
+  }
+
+  // y momentum density for mhd on dyngr background
+  if (variable.compare("dyngr_diag_my") == 0) {
+    out_params.contains_derived = true;
+    out_params.n_derived += 1;
+    int i_derived = out_params.n_derived - 1;
+    outvars.emplace_back("dyngr_diag_my",i_derived,&(derived_var));
+  }
+
+  // z momentum density for mhd on dyngr background
+  if (variable.compare("dyngr_diag_mz") == 0) {
+    out_params.contains_derived = true;
+    out_params.n_derived += 1;
+    int i_derived = out_params.n_derived - 1;
+    outvars.emplace_back("dyngr_diag_mz",i_derived,&(derived_var));
+  }
+
+  // angular momentum density for mhd on dyngr background
+  if (variable.compare("dyngr_diag_jz") == 0) {
+    out_params.contains_derived = true;
+    out_params.n_derived += 1;
+    int i_derived = out_params.n_derived - 1;
+    outvars.emplace_back("dyngr_diag_jz",i_derived,&(derived_var));
+  }
+
   // initialize vector containing number of output MBs per rank
   noutmbs.assign(global_variable::nranks, 0);
 }
